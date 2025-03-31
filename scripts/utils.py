@@ -89,8 +89,6 @@ def report_df(df, output_dir="../output/data_reports"):
     many_missing_rows = missing_counts_rows[missing_counts_rows > 0.8 * num_cols]
     handle.write(f"{many_missing_rows.to_string()}\n\n")
 
-    print(df.dtypes)
-    
 
     handle.close()
 
@@ -99,7 +97,9 @@ def clean_data(df):
     sparse_cols = df.columns[df.isna().sum() > 0.1 * len(df)]
     df = df.drop(columns=sparse_cols)
 
-    df['year', 'month', 'day'] = df['date'].str.split('-')
+    df[['year', 'month', 'day']] = df['date'].str.split('-', expand=True)
+    df[['year', 'month', 'day']] = df[['year', 'month', 'day']].apply(pd.to_numeric)
+
     df = df.drop(columns=['username', 'date'])
 
     df = df.dropna()
@@ -115,8 +115,29 @@ def create_target(df):
     return X, y
 
 
-def sort_num_cat_cols(df):
+def sort_cols(df):
     num_col_selector = (df.dtypes == "int64") | (df.dtypes == "float64")
+    text_col_selector = df.dtypes == "object"
+
     num_cols = df.columns[num_col_selector]
-    cat_cols = df.columns[~num_col_selector]
-    return num_cols, cat_cols
+    text_cols = df.columns[text_col_selector]
+    cat_cols = df.columns[~(num_col_selector | text_col_selector)]
+
+    return num_cols, text_cols, cat_cols
+
+
+def over_under_pred_scores(trues, preds):
+    num_under = 0
+    num_over = 0
+
+    total = len(trues)
+    for true, pred in zip(trues, preds):
+        if pred < true:
+            num_under += 1
+        elif pred != true:
+            num_over += 1
+
+    under_pred_score = num_under / total
+    over_pred_score = num_over / total
+
+    return under_pred_score, over_pred_score
