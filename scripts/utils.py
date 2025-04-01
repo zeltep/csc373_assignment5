@@ -1,6 +1,6 @@
 '''
 ----------------------
-Evan Zelt
+Evan Zelt & Brett Westerberg
 CSC 373: Assignment 5
 Dr. Khuri
 Wake Forest University
