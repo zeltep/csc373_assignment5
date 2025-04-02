@@ -15,7 +15,7 @@ Acknowledgements:
 import os
 import gzip
 import pandas as pd
-from tqdm import tqdm
+import numpy as np
 
 def get_dataset():
     file_path = "/deac/csc/classes/csc373/data/assignment_5/steam_reviews.json.gz"
@@ -126,18 +126,50 @@ def sort_cols(df):
     return num_cols, text_cols, cat_cols
 
 
-def over_under_pred_scores(trues, preds):
-    num_under = 0
-    num_over = 0
-
+def over_under_pred_scores(trues, preds, classification=False):
     total = len(trues)
-    for true, pred in zip(trues, preds):
-        if pred < true:
-            num_under += 1
-        elif pred != true:
-            num_over += 1
 
-    under_pred_score = num_under / total
-    over_pred_score = num_over / total
+    if classification:
+        over_pred_score = sum((preds == 1) & (trues == 0)) / total
+        under_pred_score = sum((preds == 0) & (trues == 1)) / total        
 
-    return under_pred_score, over_pred_score
+        return over_pred_score, under_pred_score
+
+    over_pred_score = sum(preds > trues) / total
+    under_pred_score = sum(preds < trues) / total
+
+    return over_pred_score, under_pred_score
+
+
+def get_log_y(y):
+    return np.log2(y+1)
+
+
+def write_estimation_scores(handle, scores):
+    handle.write(f"\tR-Squared: {scores['r2']:.3f}\n")
+    handle.write(f"\tMSE (dev): {scores['mse']:.3f}\n")
+    handle.write(f"\tOverprediction Rate (dev): {scores['over']:.2f}\n")
+    handle.write(f"\tUnderprediction Rate (dev): {scores['under']:.2f}\n\n")
+
+
+def write_classification_scores(handle, scores):
+    handle.write(f"\tAccurracy (dev): {scores['accuracy']:.3f}\n")
+    handle.write(f"\tOverprediction Rate (dev): {scores['over']:.2f}\n")
+    handle.write(f"\tUnderprediction Rate (dev): {scores['under']:.2f}\n\n")
+
+
+def binarize_y(y):
+    return (y > y.median()).astype(int)
+
+
+def remove_outliers(X, y, a=.1):
+    combined = X.copy()
+    combined['hours'] = y
+
+    threshold = combined['hours'].quantile(1 - a)
+    filtered = combined[combined['hours'] < threshold]
+
+    y = filtered['hours']
+    X = filtered.drop(columns=['hours'])
+
+    return X, y
