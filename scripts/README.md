@@ -19,7 +19,8 @@ For all of these, we are reporting measures of accuracy and overpredicted/underp
 In '../output',   We have two folders, 'data_reports' and 'model_scores'.  In 'data_reports' we have a summary of
 the data set.  In 'model_scores' we have three folders, storing the scores for each task we are doing, classification,
 estimation, and recommendation.  
-The best-performing model will be saved to ../outputs/best_model.pkl
+
+The best-performing model will be saved to '../outputs/best_model.pkl'
 
 ## Usage
 
