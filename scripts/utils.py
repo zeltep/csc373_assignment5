@@ -44,14 +44,6 @@ def get_dataset_split(dataset):
     return train_data, dev_data
 
 
-def get_dates(dataset):
-    dates = []
-    for i in range(len(dataset)):
-        dates.append(int(dataset[i]['date'][:4]))
-
-    return dates
-
-
 def create_df(dataset):
     return pd.DataFrame(dataset)
 
@@ -100,7 +92,7 @@ def clean_data(df):
     df[['year', 'month', 'day']] = df['date'].str.split('-', expand=True)
     df[['year', 'month', 'day']] = df[['year', 'month', 'day']].apply(pd.to_numeric)
 
-    df = df.drop(columns=['username', 'date'])
+    df = df.drop(columns=['date'])
 
     df = df.dropna()
     df = df.drop_duplicates()
@@ -158,6 +150,12 @@ def write_classification_scores(handle, scores):
     handle.write(f"\tUnderprediction Rate (dev): {scores['under']:.2f}\n\n")
 
 
+def write_recommendation_scores(handle, scores):
+    handle.write(f"\tMSE (dev): {scores['mse']}\n")
+    handle.write(f"\tOverprediction Rate (dev): {scores['over']:.2f}\n")
+    handle.write(f"\tUnderprediction Rate (dev): {scores['under']:.2f}\n\n")
+
+
 def binarize_y(y):
     return (y > y.median()).astype(int)
 
@@ -172,4 +170,22 @@ def remove_outliers(X, y, a=.1):
     y = filtered['hours']
     X = filtered.drop(columns=['hours'])
 
+    return X, y
+
+    
+def get_data_before(X, y, year):
+    X['hours'] = y
+    filtered = X[X['year'] <= year]
+    
+    y = filtered['hours']
+    X = filtered.drop(columns=['hours'])
+    return X, y
+
+
+def get_data_after(X, y, year):
+    X['hours'] = y
+    filtered = X[X['year'] >= year]
+    
+    y = filtered['hours']
+    X = filtered.drop(columns=['hours'])
     return X, y
