@@ -20,12 +20,29 @@ In '../output',   We have two folders, 'data_reports' and 'model_scores'.  In 'd
 the data set.  In 'model_scores' we have three folders, storing the scores for each task we are doing, classification,
 estimation, and recommendation.  
 
-The best-performing model will be saved to '../outputs/best_model.pkl'
+The best-performing models for each task will be saved to '../outputs/models/'
 
 ## Usage
 
 With assignment_5/scripts as the working directory, 
 
+
+**Run trainings**
 ```{bash}
-python asssignment_5.py 
+python asssignment_5.py
+```
+
+**Run Estimation on saved pipeline**
+```{bash}
+python run_estimation.py [model_path] [data_file_path]
+```
+
+**Run Classification on saved pipeline**
+```{bash}
+python run_classification.py [model_path] [data_file_path]
+```
+
+**Run Recommendation on saved pipeline**
+```{bash}
+python run_recommendation.py [model_path] [data_file_path]
 ```

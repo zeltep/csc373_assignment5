@@ -16,7 +16,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
-from sklearn.linear_model import SGDRegressor
+from sklearn.linear_model import SGDRegressor, LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import mean_squared_error
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.decomposition import TruncatedSVD
@@ -145,15 +146,25 @@ def recommendation(df, output_handle):
 
     spark = SparkSession.builder.getOrCreate()
     spark_df = spark.createDataFrame(df)
+    train, test = spark_df.randomSplit([0.8, 0.2], seed=seed)
 
     indexer = StringIndexer(inputCol="username", outputCol="user_code", handleInvalid='keep')
-    recommendation = ALS(maxIter=5, regParam=0.01, userCol='user_code', itemCol='product_id', ratingCol='log_hours', nonnegative=True, seed=seed)
+    recommendation = ALS(
+        maxIter=5, 
+        regParam=0.01, 
+        userCol='user_code', 
+        itemCol='product_id', 
+        ratingCol='log_hours', 
+        nonnegative=True, 
+        coldStartStrategy='drop',
+        seed=seed
+    )
 
     pipeline = MLPipeline(stages=[indexer, recommendation])
 
-    model = pipeline.fit(spark_df)
+    model = pipeline.fit(train)
     
-    predictions = model.transform(spark_df) 
+    predictions = model.transform(test) 
     predictions = predictions.toPandas()
     
     scores = {}
@@ -165,15 +176,13 @@ def recommendation(df, output_handle):
     output_handle.write("Recommendation scores:\n")
     utils.write_recommendation_scores(output_handle, scores)
 
-    joblib.dump(model, "../output/models/recommendation_pipeline.pkl")
+    model.write().overwrite().save("../output/models/recommendation_pipeline.pkl")
 
 
 def main():
     dataset = utils.get_dataset()
     df = utils.create_df(dataset)
     
-    #df = utils.get_subsample()
-
     utils.report_df(df)
     
     cleaned_df = utils.clean_data(df)

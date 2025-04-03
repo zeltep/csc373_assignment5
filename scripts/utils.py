@@ -32,6 +32,20 @@ def get_dataset():
     return dataset
 
 
+def get_dataset_from_path(file_path):
+    input_file = gzip.open(file_path)
+    
+    dataset = []
+    
+    for l in input_file:
+        d = eval(l)
+        dataset.append(d)
+
+    input_file.close()
+    
+    return dataset
+
+
 def get_subsample():
     file_path = "../data/subsample.csv"
     return pd.read_csv(file_path)
