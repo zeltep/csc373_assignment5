@@ -2,14 +2,15 @@
 #SBATCH --job-name="csc373-DM"
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
-#SBATCH --mem=24GB
+#SBATCH --mem=64GB
 #SBATCH --time=02-00:00:00
 #SBATCH --output="OUTPUT-%j.o"
 #SBATCH --error="ERROR-%j.e"
 #SBATCH --mail-user=zeltep21@wfu.edu
 #SBATCH --mail-type=END,FAIL
 #SBATCH --account=csc373
-#SBATCH --partition=large
+#SBATCH --gpus=1
+#SBATCH --partition=gpu
 
 # Load a software module
 module load /deac/csc/classes/csc373/software/modulefiles/csc373/python/3.11.8

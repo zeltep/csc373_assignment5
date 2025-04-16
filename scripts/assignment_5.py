@@ -23,9 +23,10 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.decomposition import TruncatedSVD
 from sklearn.dummy import DummyClassifier
 from sklearn.metrics import accuracy_score
-from pyspark.sql import SparkSession
+from pyspark.sql import SparkSession, Window
 from pyspark.ml import Pipeline as MLPipeline
 from pyspark.ml.recommendation import ALS 
+from pyspark.sql.functions import rand, row_number, col, desc
 from pyspark.ml.feature import StringIndexer
 import joblib
 
@@ -142,20 +143,21 @@ def classification(train_X, dev_X, train_y, dev_y, output_handle, model=None):
     
 
 def recommendation(df, output_handle):
-    df['log_hours'] = utils.get_log_y(df['hours'])
+    df['log_hours'] = utils.get_log_y(df['hours']).round()
+    df['product_id'] = df['product_id'].astype(int)
 
-    spark = SparkSession.builder.getOrCreate()
-    spark_df = spark.createDataFrame(df)
-    train, test = spark_df.randomSplit([0.8, 0.2], seed=seed)
+    df = df.sample(frac=0.01)
+
+    spark = SparkSession.builder.appName("Recommender").config("spark.executor.memory", "64g").getOrCreate()
+
+    spark_df = spark.createDataFrame(df[['username', 'product_id', 'log_hours']])
+    train, test = spark_df.randomSplit([0.8, 0.2])
 
     indexer = StringIndexer(inputCol="username", outputCol="user_code", handleInvalid='keep')
     recommendation = ALS(
-        maxIter=5, 
-        regParam=0.01, 
         userCol='user_code', 
         itemCol='product_id', 
         ratingCol='log_hours', 
-        nonnegative=True, 
         coldStartStrategy='drop',
         seed=seed
     )
@@ -166,7 +168,12 @@ def recommendation(df, output_handle):
     
     predictions = model.transform(test) 
     predictions = predictions.toPandas()
+    predictions = predictions.dropna()
     
+    if(len(predictions) == 0):
+        output_handle.write("Recommendation could not complete: not enough data to make predictions")
+        return
+
     scores = {}
     trues = predictions['log_hours']
     preds = predictions['prediction']
@@ -187,6 +194,7 @@ def main():
     
     cleaned_df = utils.clean_data(df)
     X, y = utils.create_target(cleaned_df)
+
 
     #Original Estimation
     train_X, dev_X, train_y, dev_y = train_test_split(X, y, random_state=seed, test_size=0.2)
